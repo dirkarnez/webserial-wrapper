@@ -1,6 +1,6 @@
 webserial-wrapper
 =================
-```
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -23,8 +23,12 @@ webserial-wrapper
 
         // 3. Receive messages from the server
         socket.onmessage = (event) => {
+            const data = JSON.parse(event.data);
             const msgDiv = document.getElementById('messages');
-            msgDiv.innerHTML += `<p>Server says: ${event.data}</p>`;
+            msgDiv.innerHTML += `<p>Server says: ${data}</p>`;
+
+            // Send data to desktop app
+            socket.send(JSON.stringify({ event: 'button_clicked' }));
         };
 
         // 4. Handle errors or closures
