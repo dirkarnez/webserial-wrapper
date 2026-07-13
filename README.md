@@ -1,5 +1,25 @@
 webserial-wrapper
 =================
+```js
+async function restartSerialPort() {
+  // 1 & 2: Cancel reader and release lock
+  if (reader) {
+    await reader.cancel().catch(() => {}); 
+    reader.releaseLock();
+  }
+
+  // 3: Close the port
+  if (port) {
+    await port.close();
+  }
+
+  // 4: Re-open the port
+  if (port) {
+    await port.open({ baudRate: 9600 }); // Replace with your baud rate
+    // Re-start your read/write loops here
+  }
+}
+```
 ```html
 <!DOCTYPE html>
 <html lang="en">
