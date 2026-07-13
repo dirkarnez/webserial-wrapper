@@ -1,6 +1,6 @@
 [webserial-wrapper](https://dirkarnez.github.io/webserial-wrapper)
 ==================================================================
-<kbd>[**vscode-web-action**](https://github.com/dirkarnez/vscode-web-action/actions/workflows/vscode-web.yml)</kbd><br>
+<kbd>[**vscode-web-action**](https://github.com/dirkarnez/webserial-wrapper/actions/workflows/vscode-web.yml)</kbd><br>
 
 - https://github.com/GoogleChromeLabs/serial-terminal
 
