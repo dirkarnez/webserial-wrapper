@@ -15,7 +15,7 @@ WebSerialWrapper().then(async ({lines}) => {
 ```
 
 ### Snippets
-```
+```js
 performance.mark("login-started");
 const hndle = setTimeout(() => {
     performance.mark("login-finished");
