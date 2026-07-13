@@ -1,60 +1,65 @@
-import './style.css'
-import typescriptLogo from './assets/typescript.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import { setupCounter } from './counter.ts'
+export default async function (options: SerialOptions) {
+  let port = null;
+  let reader = null;
 
-document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
-<section id="center">
-  <div class="hero">
-    <img src="${heroImg}" class="base" width="170" height="179">
-    <img src="${typescriptLogo}" class="framework" alt="TypeScript logo"/>
-    <img src="${viteLogo}" class="vite" alt="Vite logo" />
-  </div>
-  <div>
-    <h1>Get started</h1>
-    <p>Edit <code>src/main.ts</code> and save to test <code>HMR</code></p>
-  </div>
-  <button id="counter" type="button" class="counter"></button>
-</section>
+  try {
+    // 1. Ask the user to select a device
+    port = await navigator.serial.requestPort();
+    
+    // 2. Open the port with the desired baud rate
+    await port.open(!!options ? options : {
+      baudRate: 115200
+    });
+    
+    // 3. Write data (e.g., sending an "ON" command)
+    // const textEncoder = new TextEncoder();
+    // const writer = port.writable.getWriter();
+    // await writer.write(textEncoder.encode("ON\n"));
+    // writer.releaseLock();
 
-<div class="ticks"></div>
+    // 4. Read data from the device
+    // const decoder = new TextDecoderStream();
+    // port.readable.pipeTo(decoder.writable);
+    // const reader = decoder.readable.getReader();
 
-<section id="next-steps">
-  <div id="docs">
-    <svg class="icon" role="presentation" aria-hidden="true"><use href="/icons.svg#documentation-icon"></use></svg>
-    <h2>Documentation</h2>
-    <p>Your questions, answered</p>
-    <ul>
-      <li>
-        <a href="https://vite.dev/" target="_blank">
-          <img class="logo" src="${viteLogo}" alt="" />
-          Explore Vite
-        </a>
-      </li>
-      <li>
-        <a href="https://www.typescriptlang.org" target="_blank">
-          <img class="button-icon" src="${typescriptLogo}" alt="">
-          Learn more
-        </a>
-      </li>
-    </ul>
-  </div>
-  <div id="social">
-    <svg class="icon" role="presentation" aria-hidden="true"><use href="/icons.svg#social-icon"></use></svg>
-    <h2>Connect with us</h2>
-    <p>Join the Vite community</p>
-    <ul>
-      <li><a href="https://github.com/vitejs/vite" target="_blank"><svg class="button-icon" role="presentation" aria-hidden="true"><use href="/icons.svg#github-icon"></use></svg>GitHub</a></li>
-      <li><a href="https://chat.vite.dev/" target="_blank"><svg class="button-icon" role="presentation" aria-hidden="true"><use href="/icons.svg#discord-icon"></use></svg>Discord</a></li>
-      <li><a href="https://x.com/vite_js" target="_blank"><svg class="button-icon" role="presentation" aria-hidden="true"><use href="/icons.svg#x-icon"></use></svg>X.com</a></li>
-      <li><a href="https://bsky.app/profile/vite.dev" target="_blank"><svg class="button-icon" role="presentation" aria-hidden="true"><use href="/icons.svg#bluesky-icon"></use></svg>Bluesky</a></li>
-    </ul>
-  </div>
-</section>
+    // // 4. Read data forever until the port closes
+    // while (true) {
+    //   const { value, done } = await reader.read();
+    //   if (done) break; // Exit if done
+    //   console.log(value); // Print data to the console
+    // }
 
-<div class="ticks"></div>
-<section id="spacer"></section>
-`
 
-setupCounter(document.querySelector<HTMLButtonElement>('#counter')!)
+    reader = port.readable.getReader();
+    const decoder = new TextDecoder();
+    
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) {
+        break; // Stream has been closed
+      }
+      console.log("Received: ", decoder.decode(value));
+    }
+
+  } catch (e) {
+    console.error("Error reading port:", e);
+  } finally {
+    // 4. Safe cleanup execution
+    if (reader) {
+      try {
+        await reader.cancel();
+        reader.releaseLock();
+      } catch (e) {
+        console.error("Error releasing reader lock:", e);
+      }
+    }
+    if (port) {
+      try {
+        await port.close();
+        console.log("Serial port successfully closed.");
+      } catch (e) {
+        console.error("Error closing port:", e);
+      }
+    }
+  }
+}
