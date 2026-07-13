@@ -1,65 +1,97 @@
-export default async function (options: SerialOptions) {
-  let port = null;
-  let reader = null;
+export default async function openSerialStream(options?: SerialOptions) {
+  // Ask user to pick a port and open it
+  const port = await navigator.serial.requestPort();
+  await port.open(options ?? { baudRate: 115200 });
 
-  try {
-    // 1. Ask the user to select a device
-    port = await navigator.serial.requestPort();
-    
-    // 2. Open the port with the desired baud rate
-    await port.open(!!options ? options : {
-      baudRate: 115200
-    });
-    
-    // 3. Write data (e.g., sending an "ON" command)
-    // const textEncoder = new TextEncoder();
-    // const writer = port.writable.getWriter();
-    // await writer.write(textEncoder.encode("ON\n"));
-    // writer.releaseLock();
+  let closed = false;
 
-    // 4. Read data from the device
-    // const decoder = new TextDecoderStream();
-    // port.readable.pipeTo(decoder.writable);
-    // const reader = decoder.readable.getReader();
+  // Underlying reader and decoder used to produce string chunks
+  const reader = port.readable.getReader();
+  const decoder = new TextDecoder();
 
-    // // 4. Read data forever until the port closes
-    // while (true) {
-    //   const { value, done } = await reader.read();
-    //   if (done) break; // Exit if done
-    //   console.log(value); // Print data to the console
-    // }
-
-
-    reader = port.readable.getReader();
-    const decoder = new TextDecoder();
-    
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) {
-        break; // Stream has been closed
-      }
-      console.log("Received: ", decoder.decode(value));
-    }
-
-  } catch (e) {
-    console.error("Error reading port:", e);
-  } finally {
-    // 4. Safe cleanup execution
-    if (reader) {
+  const stream = new ReadableStream<string>({
+    async start(controller) {
       try {
-        await reader.cancel();
-        reader.releaseLock();
-      } catch (e) {
-        console.error("Error releasing reader lock:", e);
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          // decode chunk (streaming decoder)
+          const text = decoder.decode(value, { stream: true });
+          if (text.length) controller.enqueue(text);
+        }
+        // flush any remaining decoded characters
+        const rest = decoder.decode();
+        if (rest.length) controller.enqueue(rest);
+        controller.close();
+      } catch (err) {
+        controller.error(err as any);
+      } finally {
+        try {
+          // release the reader lock when stream ends
+          reader.releaseLock();
+        } catch (e) {
+          // ignore
+        }
       }
-    }
-    if (port) {
+    },
+    async cancel(reason) {
+      try {
+        await reader.cancel(reason as any);
+      } catch (e) {
+        // ignore
+      }
       try {
         await port.close();
-        console.log("Serial port successfully closed.");
       } catch (e) {
-        console.error("Error closing port:", e);
+        // ignore
       }
     }
+  });
+
+  // Helper that returns a stream which splits incoming text into lines (no newlines)
+  function lines() {
+    const splitter = new TransformStream<string, string>({
+      start(controller) {
+        (this as any)._buf = '';
+      },
+      transform(chunk, controller) {
+        (this as any)._buf += chunk;
+        const parts = (this as any)._buf.split(/\r?\n/);
+        (this as any)._buf = parts.pop() ?? '';
+        for (const p of parts) controller.enqueue(p);
+      },
+      flush(controller) {
+        if ((this as any)._buf) controller.enqueue((this as any)._buf);
+      }
+    } as any);
+
+    return stream.pipeThrough(splitter);
   }
+
+  return {
+    // stream yields decoded text chunks (as they arrive). You can pipeThrough or getReader() from it.
+    stream,
+
+    // convenience: get a line-split stream
+    lines,
+
+    // underlying port if you need direct access (writer, settings, etc.)
+    port,
+
+    // close helper: cancels the underlying reader and closes the port
+    async close() {
+      if (closed) return;
+      closed = true;
+      try {
+        await reader.cancel();
+      } catch (e) {
+        // ignore
+      }
+      try {
+        await port.close();
+      } catch (e) {
+        // ignore
+      }
+    }
+  };
 }
