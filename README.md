@@ -14,7 +14,21 @@ WebSerialWrapper().then(async ({lines}) => {
 })
 ```
 
+### Snippets
+```
+performance.mark("login-started");
+const hndle = setTimeout(() => {
+    performance.mark("login-finished");
 
+    const loginMeasure = performance.measure(
+      "login-duration",
+      "login-started",
+      "login-finished",
+    );
+    
+    console.log(`${loginMeasure.duration / 1000}s`);
+}, 2000);
+```
 ```js
 async function restartSerialPort() {
   // 1 & 2: Cancel reader and release lock
