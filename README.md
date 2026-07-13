@@ -1,6 +1,6 @@
-webserial-wrapper
-=================
-https://github.com/GoogleChromeLabs/serial-terminal
+[webserial-wrapper](https://dirkarnez.github.io/webserial-wrapper)
+==================================================================
+- https://github.com/GoogleChromeLabs/serial-terminal
 
 ```js
 async function restartSerialPort() {
