@@ -1,5 +1,7 @@
 webserial-wrapper
 =================
+https://github.com/GoogleChromeLabs/serial-terminal
+
 ```js
 async function restartSerialPort() {
   // 1 & 2: Cancel reader and release lock
