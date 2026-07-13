@@ -4,6 +4,17 @@
 
 - https://github.com/GoogleChromeLabs/serial-terminal
 
+### How to use
+```js
+WebSerialWrapper().then(async ({lines}) => {
+  for await (const chunk of lines()) {
+    // Do something with each 'chunk'
+    debugger;
+  }
+})
+```
+
+
 ```js
 async function restartSerialPort() {
   // 1 & 2: Cancel reader and release lock

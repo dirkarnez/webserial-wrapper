@@ -51,16 +51,16 @@ export default async function openSerialStream(options?: SerialOptions) {
   // Helper that returns a stream which splits incoming text into lines (no newlines)
   function lines() {
     const splitter = new TransformStream<string, string>({
-      start(controller) {
+      start() {
         (this as any)._buf = '';
       },
-      transform(chunk, controller) {
+      transform(chunk: any, controller: TransformStreamDefaultController<string>) {
         (this as any)._buf += chunk;
         const parts = (this as any)._buf.split(/\r?\n/);
         (this as any)._buf = parts.pop() ?? '';
         for (const p of parts) controller.enqueue(p);
       },
-      flush(controller) {
+      flush(controller: TransformStreamDefaultController<string>) {
         if ((this as any)._buf) controller.enqueue((this as any)._buf);
       }
     } as any);
