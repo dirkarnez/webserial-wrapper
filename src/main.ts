@@ -48,31 +48,44 @@ export default async function openSerialStream(options?: SerialOptions) {
     }
   });
 
-  // Helper that returns a stream which splits incoming text into lines (no newlines)
-  function lines() {
-    const splitter = new TransformStream<string, string>({
-      start() {
-        (this as any)._buf = '';
-      },
-      transform(chunk: any, controller: TransformStreamDefaultController<string>) {
-        (this as any)._buf += chunk;
-        const parts = (this as any)._buf.split(/\r?\n/);
-        (this as any)._buf = parts.pop() ?? '';
-        for (const p of parts) controller.enqueue(p);
-      },
-      flush(controller: TransformStreamDefaultController<string>) {
-        if ((this as any)._buf) controller.enqueue((this as any)._buf);
-      }
-    } as any);
+  // Helper that returns an async-iterable which yields lines (no newlines)
+  function lines(): AsyncIterable<string> {
+    const rs = stream;
 
-    return stream.pipeThrough(splitter);
+    return (async function* () {
+      const r = rs.getReader();
+      let buf = '';
+      try {
+        while (true) {
+          const { value, done } = await r.read();
+          if (done) break;
+          buf += value;
+
+          let idx: number;
+          while ((idx = buf.indexOf('\n')) !== -1) {
+            let line = buf.slice(0, idx);
+            if (line.endsWith('\r')) line = line.slice(0, -1);
+            yield line;
+            buf = buf.slice(idx + 1);
+          }
+        }
+
+        if (buf.length) yield buf;
+      } finally {
+        try {
+          r.releaseLock();
+        } catch (e) {
+          // ignore
+        }
+      }
+    })();
   }
 
   return {
     // stream yields decoded text chunks (as they arrive). You can pipeThrough or getReader() from it.
     stream,
 
-    // convenience: get a line-split stream
+    // convenience: get a line-split async-iterable
     lines,
 
     // underlying port if you need direct access (writer, settings, etc.)
