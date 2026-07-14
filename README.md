@@ -3,7 +3,46 @@
 <kbd>[**vscode-web-action**](https://github.com/dirkarnez/webserial-wrapper/actions/workflows/vscode-web.yml)</kbd><br>
 
 - https://github.com/GoogleChromeLabs/serial-terminal
+```
+/**
+ * @param {ReadableStream<string>} stream
+ */
+async function * getAsyncIterableFromStream (stream) {
+  const reader = stream.getReader()
 
+  try {
+    while (true) {
+      const {value, done} = await reader.read()
+      if (done) return;
+        yield value;
+    }
+  } finally {
+    reader.releaseLock()
+  }
+}
+
+ (async () => {
+  const input = new TextEncoderStream()
+  const output = new TextDecoderStream()
+
+const port = await navigator.serial.requestPort()
+  await port.open({baudRate: 115200})
+
+  port.readable.pipeTo(output.writable)
+  input.readable.pipeTo(port.writable)
+
+  const obj = {
+    input: input.writable,
+    output: getAsyncIterableFromStream(output.readable)
+  };
+
+     for await(const c of obj.output) {
+         console.log(c);
+     }
+
+     
+})()
+```
 ### How to use
 ```js
 WebSerialWrapper().then(async ({lines}) => {
