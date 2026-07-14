@@ -2,8 +2,10 @@
 ==================================================================
 <kbd>[**vscode-web-action**](https://github.com/dirkarnez/webserial-wrapper/actions/workflows/vscode-web.yml)</kbd><br>
 
+
 - https://github.com/GoogleChromeLabs/serial-terminal
 - view-source:https://mdn.github.io/dom-examples/streams/simple-random-stream/
+- https://developer.mozilla.org/zh-CN/docs/Web/API/ReadableStream/getReader
 ```
 /**
  * @param {ReadableStream<string>} stream
